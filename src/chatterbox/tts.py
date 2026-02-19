@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import gc
 
 import librosa
 import torch
@@ -136,23 +137,33 @@ class ChatterboxTTS:
             map_location = None
 
         ve = VoiceEncoder()
-        ve.load_state_dict(
-            load_file(ckpt_dir / "ve.safetensors")
-        )
+        ve_state = load_file(ckpt_dir / "ve.safetensors")
+        ve.load_state_dict(ve_state)
+        del ve_state
         ve.to(device).eval()
+        if device.startswith("cuda"):
+            torch.cuda.empty_cache()
+        gc.collect()
 
         t3 = T3()
         t3_state = load_file(ckpt_dir / "t3_cfg.safetensors")
         if "model" in t3_state.keys():
             t3_state = t3_state["model"][0]
         t3.load_state_dict(t3_state)
+        del t3_state
         t3.to(device).eval()
+        if device.startswith("cuda"):
+            torch.cuda.empty_cache()
+        gc.collect()
 
         s3gen = S3Gen()
-        s3gen.load_state_dict(
-            load_file(ckpt_dir / "s3gen.safetensors"), strict=False
-        )
+        s3gen_state = load_file(ckpt_dir / "s3gen.safetensors")
+        s3gen.load_state_dict(s3gen_state, strict=False)
+        del s3gen_state
         s3gen.to(device).eval()
+        if device.startswith("cuda"):
+            torch.cuda.empty_cache()
+        gc.collect()
 
         tokenizer = EnTokenizer(
             str(ckpt_dir / "tokenizer.json")
@@ -161,6 +172,9 @@ class ChatterboxTTS:
         conds = None
         if (builtin_voice := ckpt_dir / "conds.pt").exists():
             conds = Conditionals.load(builtin_voice, map_location=map_location).to(device)
+            if device.startswith("cuda"):
+                torch.cuda.empty_cache()
+            gc.collect()
 
         return cls(t3, s3gen, ve, tokenizer, device, conds=conds)
 
