@@ -198,7 +198,7 @@ class ChatterboxTTS:
         ## Load reference wav
         s3gen_ref_wav, _sr = librosa.load(wav_fpath, sr=S3GEN_SR)
 
-        ref_16k_wav = librosa.resample(s3gen_ref_wav, orig_sr=S3GEN_SR, target_sr=S3_SR)
+        ref_16k_wav = librosa.resample(s3gen_ref_wav, orig_sr=S3GEN_SR, target_sr=S3_SR).astype(np.float32)
 
         s3gen_ref_wav = s3gen_ref_wav[:self.DEC_COND_LEN]
         s3gen_ref_dict = self.s3gen.embed_ref(s3gen_ref_wav, S3GEN_SR, device=self.device)
