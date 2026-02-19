@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 from torch import nn as nn
 from transformers import LlamaConfig, LlamaModel, LlamaPreTrainedModel, GenerationMixin
+from transformers.cache_utils import DynamicCache
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
 
@@ -51,6 +52,12 @@ class T3HuggingfaceBackend(LlamaPreTrainedModel, GenerationMixin):
             past_key_values = None
         if past_key_values is not None:
             input_ids = input_ids[:, -1:]
+            # Convert tuple of tuples to DynamicCache if needed
+            if isinstance(past_key_values, tuple) and not isinstance(past_key_values, DynamicCache):
+                cache = DynamicCache()
+                for layer_idx, (key, value) in enumerate(past_key_values):
+                    cache.update(key, value, layer_idx)
+                past_key_values = cache
 
         # custom speech token embedding layer
         inputs_embeds = self.speech_enc(input_ids)
