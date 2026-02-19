@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import gc
 
+import numpy as np
 import librosa
 import torch
 import perth
@@ -229,7 +230,15 @@ class ChatterboxTTS:
         exaggeration=0.5,
         cfg_weight=0.5,
         temperature=0.8,
+        seed=None,
     ):
+        # Set random seed for reproducibility
+        if seed is not None:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed(seed)
+        
         if audio_prompt_path:
             self.prepare_conditionals(audio_prompt_path, exaggeration=exaggeration)
         else:
